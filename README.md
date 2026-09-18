@@ -182,13 +182,14 @@ customer-churn-prediction/
 
 This project demonstrates an end-to-end machine learning workflow for customer churn prediction.
 
-## Author
-
-**Mohamed Khaled Elsayed Ahmed Aboshrief**
-
-Computer Science & Engineering Student
 
 After preprocessing the data and comparing six classification algorithms using 5-Fold Cross-Validation, **Gaussian Naive Bayes** was selected based on recall and tuned using `GridSearchCV`.
 
 
 The final model achieved approximately **75% test accuracy** and **79% recall for the churn class**, allowing it to identify a substantial proportion of customers who actually churned.
+
+## Author
+
+**Mohamed Khaled Elsayed Ahmed Aboshrief**
+
+Computer Science & Engineering Student
