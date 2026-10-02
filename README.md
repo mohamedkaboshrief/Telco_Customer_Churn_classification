@@ -77,6 +77,39 @@ During EDA, `gender` showed limited impact on churn, so it was removed from the 
 
 ---
 
+## Train/Test Split
+
+---
+
+The dataset was split into:
+
+* **75% Training Data**
+* **25% Test Data**
+
+A stratified split was used to preserve the class distribution of `Churn` across the training and test sets.
+
+```python
+train_test_split(
+    X,
+    y,
+    test_size=0.25,
+    random_state=44,
+    shuffle=True,
+    stratify=y
+)
+```
+
+The target variable was mapped as:
+
+```text
+Yes → 1
+No → 0
+```
+
+The test set was kept separate and was not used during preprocessing, feature selection, or hyperparameter tuning.
+
+---
+
 ### 3. Feature Preprocessing
 
 ---
@@ -117,6 +150,8 @@ The preprocessing pipeline includes:
 * `OneHotEncoder`
 * `ColumnTransformer`
 
+The preprocessing steps were implemented inside a Scikit-learn `Pipeline`.
+
 ---
 
 ### 4. Feature Selection
@@ -131,38 +166,9 @@ Different values of `k` were tested during hyperparameter tuning:
 5, 10, 15, 20, all
 ```
 
-Feature selection was included inside the pipeline to keep preprocessing and feature selection consistent during cross-validation.
+Feature selection was included inside the same pipeline as preprocessing and the classification model.
 
----
-
-## Train/Test Split
-
----
-
-The dataset was split into:
-
-* **75% Training Data**
-* **25% Test Data**
-
-A stratified split was used to preserve the class distribution of `Churn` across the training and test sets.
-
-```python
-train_test_split(
-    X,
-    y,
-    test_size=0.25,
-    random_state=44,
-    shuffle=True,
-    stratify=y
-)
-```
-
-The target variable was mapped as:
-
-```text
-Yes → 1
-No → 0
-```
+This ensures that preprocessing and feature selection are performed separately within each cross-validation fold, helping prevent data leakage.
 
 ---
 
@@ -178,15 +184,23 @@ Five classification models were trained and tuned using `GridSearchCV`:
 * K-Nearest Neighbors (KNN)
 * Gradient Boosting
 
-Each model was implemented using a Pipeline containing preprocessing, feature selection, and the classification model.
+Each model was implemented using a Pipeline containing:
+
+```text
+Preprocessing
+      ↓
+Feature Selection
+      ↓
+Classification Model
+```
+
+The models were tuned using **5-fold cross-validation** with **Recall** as the scoring metric.
 
 ---
 
 ## Model Comparison
 
 ---
-
-The models were tuned using **5-fold cross-validation** with **Recall** as the scoring metric.
 
 Logistic Regression and SVC achieved the highest cross-validation recall among the tested models.
 
@@ -277,7 +291,13 @@ final_model = logistic_grid.best_estimator_
 joblib.dump(final_model, "telco_churn_model.pkl")
 ```
 
-The saved pipeline contains the preprocessing, feature selection, and Logistic Regression model.
+The saved pipeline contains:
+
+* Preprocessing
+* Feature selection
+* Logistic Regression
+
+This allows the same preprocessing and feature selection steps used during training to be applied automatically to new customer data in the deployed application.
 
 ---
 
@@ -392,7 +412,7 @@ Telco_Customer_Churn_classification/
 
 ---
 
-This project demonstrates an end-to-end machine learning workflow for customer churn prediction, from data exploration and cleaning to preprocessing, feature selection, model tuning, evaluation, and deployment.
+This project demonstrates an end-to-end machine learning workflow for customer churn prediction, from data exploration and cleaning to train/test splitting, preprocessing, feature selection, model tuning, evaluation, and deployment.
 
 The final Logistic Regression model achieved **86.42% Recall**, **47.01% Precision**, **60.90% F1-Score**, and **0.842 ROC-AUC** on the test set.
 
