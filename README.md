@@ -2,7 +2,7 @@
 
 This project focuses on predicting whether a telecom customer is likely to churn using machine learning classification models.
 
-Recall is prioritized because identifying customers who are likely to churn is more important than missing actual churners.
+Recall is prioritized because identifying customers who are likely to churn is important, and missing actual churners may be costly.
 
 ---
 
@@ -45,7 +45,7 @@ The analysis included:
 
 * Numerical feature distributions using histograms and boxplots.
 * Categorical feature analysis using countplots.
-* Bivariate analysis between features and `Churn`.
+* Bivariate analysis between numerical features and `Churn`.
 * Churn class distribution.
 
 Some observations from the analysis:
@@ -65,9 +65,12 @@ The following cleaning steps were performed:
 * Removed `customerID`.
 * Converted `TotalCharges` to numeric.
 * Handled blank values in `TotalCharges`.
-* Adjusted `tenure` for customers with zero `TotalCharges`.
-* Estimated missing `tenure` and `MonthlyCharges` values where possible.
-* Replaced values such as `No internet service` and `No phone service` with `No`.
+* Set `TotalCharges` to 0 for customers with blank charges.
+* Set `tenure` to 0 when `TotalCharges` was 0.
+* Estimated missing `tenure` values using `TotalCharges` and `MonthlyCharges`.
+* Estimated missing `MonthlyCharges` using `TotalCharges` and `tenure`.
+* Replaced `No internet service` with `No` for the relevant service features.
+* Replaced `No phone service` with `No` in `MultipleLines`.
 * Removed duplicate rows.
 
 During EDA, `gender` showed limited impact on churn, so it was removed from the final feature set to simplify the model.
@@ -78,7 +81,7 @@ During EDA, `gender` showed limited impact on churn, so it was removed from the 
 
 ---
 
-Features were divided into:
+Features were divided into three groups.
 
 **Binary Features:**
 
@@ -141,13 +144,16 @@ The dataset was split into:
 * **75% Training Data**
 * **25% Test Data**
 
+A stratified split was used to preserve the class distribution of `Churn` across the training and test sets.
+
 ```python
 train_test_split(
     X,
     y,
     test_size=0.25,
     random_state=44,
-    shuffle=True
+    shuffle=True,
+    stratify=y
 )
 ```
 
@@ -198,16 +204,17 @@ Both models were then evaluated on the test set using:
 
 ---
 
-Based on the evaluation results, **Logistic Regression** was selected as the final model.
+Logistic Regression was selected as the final model after evaluating the tested models, with Recall prioritized for the Churn class.
 
-The model achieved approximately:
+The final test-set results were:
 
-| Metric          | Score |
-| --------------- | ----: |
-| Accuracy        |   74% |
-| Churn Precision |   49% |
-| Churn Recall    |   86% |
-| Churn F1-Score  |   63% |
+| Metric          |  Score |
+| --------------- | -----: |
+| Accuracy        | 70.66% |
+| Churn Precision | 47.01% |
+| Churn Recall    | 86.42% |
+| Churn F1-Score  | 60.90% |
+| ROC-AUC         | 84.20% |
 
 Recall was prioritized because a False Negative represents a customer who actually churns but was not identified by the model.
 
@@ -232,17 +239,17 @@ This is especially important for churn prediction because False Negatives repres
 
 ---
 
-Different classification thresholds were tested to examine the trade-off between Precision and Recall.
+Different classification thresholds were tested to examine the trade-off between Precision, Recall, and F1-score.
 
 | Threshold | Precision |    Recall |  F1-Score |
 | --------- | --------: | --------: | --------: |
-| 0.3       |     37.8% |     96.1% |     54.3% |
-| 0.4       |     42.1% |     92.4% |     57.9% |
-| **0.5**   | **49.1%** | **85.6%** | **62.4%** |
-| 0.6       |     55.9% |     67.9% |     61.3% |
-| 0.7       |     64.4% |     48.4% |     55.2% |
+| 0.3       |     37.1% |     95.3% |     53.4% |
+| 0.4       |     41.1% |     92.7% |     57.0% |
+| **0.5**   | **47.0%** | **86.4%** | **60.9%** |
+| 0.6       |     56.9% |     71.8% |     63.5% |
+| 0.7       |     67.7% |     53.2% |     59.6% |
 
-Among the tested thresholds, **0.5 achieved the highest F1-score**, so the default threshold of 0.5 was retained.
+A threshold of **0.5** was retained for the final model because Recall is the primary metric in this project. Although a threshold of 0.6 produced a higher F1-score, it reduced Recall from **86.4% to 71.8%**.
 
 ---
 
@@ -250,9 +257,9 @@ Among the tested thresholds, **0.5 achieved the highest F1-score**, so the defau
 
 ---
 
-ROC-AUC was calculated using the predicted probabilities of the final Logistic Regression model.
+The final Logistic Regression model achieved a **ROC-AUC of 0.842**.
 
-The ROC curve was also plotted to evaluate the model's ability to distinguish between churn and non-churn customers across different thresholds.
+The ROC curve was plotted using the predicted probabilities to evaluate the model's ability to distinguish between churn and non-churn customers across different classification thresholds.
 
 ---
 
@@ -281,6 +288,11 @@ The saved pipeline contains the preprocessing, feature selection, and Logistic R
 A Streamlit application was created to allow users to enter customer information and receive a churn prediction.
 
 The application uses the saved machine learning pipeline to process the input and predict whether the customer is likely to churn.
+
+The application also handles dependent input features:
+
+* When `InternetService` is `No`, internet-related services are automatically set to `No`.
+* When `PhoneService` is `No`, `MultipleLines` is automatically set to `No`.
 
 **Live Application:**
 
@@ -315,6 +327,7 @@ This project demonstrates:
 * Feature Preprocessing
 * Feature Selection
 * Train/Test Split
+* Stratified Splitting
 * Pipelines
 * ColumnTransformer
 * Cross-Validation
@@ -381,7 +394,11 @@ Telco_Customer_Churn_classification/
 
 This project demonstrates an end-to-end machine learning workflow for customer churn prediction, from data exploration and cleaning to preprocessing, feature selection, model tuning, evaluation, and deployment.
 
-The final model was deployed as a Streamlit web application for real-time churn prediction.
+The final Logistic Regression model achieved **86.42% Recall**, **47.01% Precision**, **60.90% F1-Score**, and **0.842 ROC-AUC** on the test set.
+
+A classification threshold of **0.5** was retained because Recall was prioritized, allowing the model to identify a larger proportion of actual churners.
+
+The trained model was saved as a complete pipeline and deployed through a Streamlit web application for real-time churn prediction.
 
 ---
 
